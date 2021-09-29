@@ -34,3 +34,13 @@ class ArrangementsBasicResultSchema(MetaCollectionSchema):
 
 class ArrangementsFullResultSchema(MetaCollectionSchema):
 	items = fields.List(fields.Nested(ArrangementFullResponseSchema()), data_key = "response")
+
+
+class UserRegistrationSchema(Schema):
+	name = fields.String(required = True)
+	surname = fields.String(required = True)
+	email = fields.String(required = True)
+	username = fields.String(required = True)
+	password = fields.String(required = True)
+	password_verification = fields.String(required = True)
+	type = fields.Integer(default = 0, missing = 0)

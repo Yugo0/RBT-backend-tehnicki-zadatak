@@ -1,2 +1,2 @@
 from .arrangement import ArrangementBasicResponseSchema, ArrangementFullResponseSchema, MetaSchema, \
-	ArrangementsBasicResultSchema, ArrangementsFullResultSchema
+	ArrangementsBasicResultSchema, ArrangementsFullResultSchema, UserRegistrationSchema

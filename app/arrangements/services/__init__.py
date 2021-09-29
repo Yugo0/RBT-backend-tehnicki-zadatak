@@ -1,1 +1,1 @@
-from .service import ArrangementService
+from .service import ArrangementService, UserService
