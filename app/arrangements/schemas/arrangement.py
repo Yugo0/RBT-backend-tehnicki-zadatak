@@ -44,3 +44,8 @@ class UserRegistrationSchema(Schema):
 	password = fields.String(required = True)
 	password_verification = fields.String(required = True)
 	type = fields.Integer(default = 0, missing = 0)
+
+
+class UserLoginSchema(Schema):
+	username = fields.String(required = True)
+	password = fields.String(required = True)

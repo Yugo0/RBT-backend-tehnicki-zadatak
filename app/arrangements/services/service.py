@@ -6,12 +6,6 @@ from werkzeug.exceptions import BadRequest
 
 
 class ArrangementService:
-	# TODO - Remove this
-	@staticmethod
-	def get_test():
-		arrangement = db.session.query(Arrangement).first()
-		return arrangement
-
 	@staticmethod
 	def get_all(data):
 		arrangements = db.session.query(Arrangement).paginate(page = data.get("page"), per_page = data.get("per_page"))
@@ -29,8 +23,13 @@ class ArrangementService:
 class UserService:
 	@staticmethod
 	def get_by_id(id):
-		arrangements = db.session.query(User).filter_by(User.id == id).one_or_none()
-		return arrangements
+		user = db.session.query(User).filter(User.id == id).one_or_none()
+		return user
+
+	@staticmethod
+	def get_by_username(username):
+		user = db.session.query(User).filter(User.username == username).one_or_none()
+		return user
 
 	@staticmethod
 	def register(data):
@@ -45,13 +44,15 @@ class UserService:
 		if check:
 			raise BadRequest(f"Username {username} already exists")
 
-		password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+		password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 		user = User(name, surname, email, username, password_hash, 0)
 
 		if type != 0:
-			# TODO - add account type request
+			# TODO - Add account type request
 			pass
 
 		db.session.add(user)
 		db.session.commit()
+
+		return user
