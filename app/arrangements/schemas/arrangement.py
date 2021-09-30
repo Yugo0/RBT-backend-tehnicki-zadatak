@@ -59,3 +59,25 @@ class TypeChangeResponseSchema(Schema):
 	type = fields.Integer(required = True)
 	accepted = fields.Boolean()
 	comment = fields.String()
+
+
+class ReservationResponseSchema(Schema):
+	start_date = fields.DateTime()
+	end_date = fields.DateTime()
+	destination = fields.String()
+	count = fields.Integer()
+	price = fields.Float()
+
+
+class ReservationsResponseSchema(MetaCollectionSchema):
+	items = fields.List(fields.Nested(ReservationResponseSchema()), data_key = "response")
+
+
+class ReserveRequestSchema(Schema):
+	count = fields.Integer(default = 1, missing = 1)
+	arrangement_id = fields.Integer(required = True)
+
+
+class ReserveResponseSchema(Schema):
+	count = fields.Integer()
+	price = fields.Float()

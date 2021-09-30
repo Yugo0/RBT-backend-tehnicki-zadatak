@@ -12,6 +12,8 @@ class Arrangement(db.Model):
 	price = db.Column(db.Float, nullable = False)
 	admin_id = db.Column(db.Integer(), db.ForeignKey("users.id"), nullable = False)
 
+	reservations = db.relationship("Reservation", backref = "arrangements", lazy = True)
+
 	def __init__(self, start_date, end_date, description, destination, vacancies, price, admin_id):
 		self.start_date = start_date
 		self.end_date = end_date
@@ -34,6 +36,7 @@ class User(db.Model):
 
 	type_change_requests = db.relationship("TypeChangeRequest", backref = "users", lazy = True)
 	created_arrangements = db.relationship("Arrangement", backref = "users", lazy = True)
+	reservations = db.relationship("Reservation", backref = "users", lazy = True)
 
 	def __init__(self, name, surname, email, username, password_hash, type):
 		self.name = name
@@ -56,3 +59,19 @@ class TypeChangeRequest(db.Model):
 	def __init__(self, type, user_id):
 		self.type = type
 		self.user_id = user_id
+
+
+class Reservation(db.Model):
+	__tablename__ = "reservations"
+
+	id = db.Column(db.Integer, primary_key = True)
+	count = db.Column(db.Integer, nullable = False)
+	price = db.Column(db.Float, nullable = False)
+	user_id = db.Column(db.Integer(), db.ForeignKey("users.id"), nullable = False)
+	arrangement_id = db.Column(db.Integer(), db.ForeignKey("arrangements.id"), nullable = False)
+
+	def __init__(self, count, price, user_id, arrangement_id):
+		self.count = count
+		self.price = price
+		self.user_id = user_id
+		self.arrangement_id = arrangement_id

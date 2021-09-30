@@ -2,7 +2,8 @@ from app.arrangements import arrangement_bp
 from flask import request, session, redirect
 from app.arrangements.schemas import ArrangementBasicResponseSchema, ArrangementFullResponseSchema, MetaSchema, \
 	ArrangementsBasicResultSchema, ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, \
-	TypeChangeRequestSchema, TypeChangeResponseSchema
+	TypeChangeRequestSchema, TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, \
+	ReserveResponseSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import re
@@ -17,6 +18,9 @@ user_registration_schema = UserRegistrationSchema()
 user_login_schema = UserLoginSchema()
 type_change_request_schema = TypeChangeRequestSchema()
 type_change_response_schema = TypeChangeResponseSchema()
+reservations_response_schema = ReservationsResponseSchema()
+reserve_request_schema = ReserveRequestSchema()
+reserve_response_schema = ReserveResponseSchema()
 
 
 # all arrangements - no user
@@ -90,6 +94,27 @@ def get_available():
 	return arrangements_full_result_schema.dump(arrangements)
 
 
+# reservations - tourist
+@arrangement_bp.get("user/reservations")
+def get_reservations():
+	id = session.get("id")
+	if not id:
+		raise Forbidden("Access forbidden")
+
+	user = UserService.get_by_id(id)
+
+	if not user:
+		raise NotFound(f"User with id {id} not found")
+
+	if user.type != 0:
+		raise Forbidden("Access forbidden for this account type")
+
+	data = meta_schema.load(request.args.to_dict())
+	reservations = ArrangementService.get_reservations(data, id)
+
+	return reservations_response_schema.dump(reservations)
+
+
 # user login
 @arrangement_bp.post("login")
 def user_login():
@@ -142,11 +167,11 @@ def register_user():
 # type change request
 @arrangement_bp.post("user/request_change")
 def request_type_change():
-	data = type_change_request_schema.load(request.json)
 	user_id = session.get("id")
 	if not user_id:
 		raise Forbidden(f"Access forbidden")
 
+	data = type_change_request_schema.load(request.json)
 	new_type = data.get("new_type")
 
 	user = UserService.get_by_id(user_id)
@@ -169,3 +194,16 @@ def inspect_request():
 	req = UserService.get_request_by_user_id(user_id)
 
 	return type_change_response_schema.dump(req)
+
+
+# reserve arrangement
+@arrangement_bp.post("arrangement/reserve")
+def reserve_arrangement():
+	user_id = session.get("id")
+	if not user_id:
+		raise Forbidden("Access forbidden")
+
+	data = reserve_request_schema.load(request.json)
+	reservation = ArrangementService.reserve(data, user_id)
+
+	return reserve_response_schema.dump(reservation)

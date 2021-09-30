@@ -1,8 +1,8 @@
 from app import db
-from app.arrangements.models import Arrangement, User, TypeChangeRequest
+from app.arrangements.models import Arrangement, User, TypeChangeRequest, Reservation
 from datetime import datetime, timedelta
 import bcrypt
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, NotAcceptable
 
 
 class ArrangementService:
@@ -14,16 +14,48 @@ class ArrangementService:
 	@staticmethod
 	def get_available(data, id):
 		from_date = datetime.now() + timedelta(days = 5)
-		# TODO - Add condition: not reserved by user
-		arrangements = db.session.query(Arrangement).filter(Arrangement.start_date >= from_date).paginate(
-			page = data.get("page"), per_page = data.get("per_page"))
+
+		reservations = db.session.query(Reservation).filter(Reservation.user_id == id)
+		exclude = [ex.arrangement_id for ex in reservations]
+
+		arrangements = db.session.query(Arrangement).filter(Arrangement.start_date >= from_date)
+		for ex in exclude:
+			arrangements = arrangements.filter(Arrangement.id != ex)
+		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
+
+	@staticmethod
+	def get_reservations(data, id):
+		reservations = db.session.query(Arrangement.start_date, Arrangement.end_date, Arrangement.destination,
+			Reservation.count, Reservation.price).join(Arrangement).filter(
+			Arrangement.id == Reservation.arrangement_id).filter(Reservation.user_id == id).paginate(
+			page = data.get("page"), per_page = data.get("per_page"))
+		return reservations
 
 	@staticmethod
 	def get_created(data, id):
 		arrangements = db.session.query(Arrangement).filter(Arrangement.admin_id == id).paginate(
 			page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
+
+	@staticmethod
+	def reserve(data, user_id):
+		arrangement = db.session.query(Arrangement).filter(Arrangement.id == data.get("arrangement_id")).one_or_none()
+		count = data.get("count")
+		if count > arrangement.vacancies:
+			raise NotAcceptable("Not enough vacancies")
+
+		arrangement.vacancies = arrangement.vacancies - count
+
+		price_of_one = arrangement.price
+		price = count * price_of_one if count <= 3 else 3 * price_of_one + (count - 3) * price_of_one * 0.9
+
+		reservation = Reservation(count, price, user_id, arrangement.id)
+
+		db.session.add(reservation)
+		db.session.commit()
+
+		return reservation
 
 
 class UserService:
