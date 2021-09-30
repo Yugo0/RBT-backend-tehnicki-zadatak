@@ -1,5 +1,5 @@
 from app import db
-from app.arrangements.models import Arrangement, User
+from app.arrangements.models import Arrangement, User, TypeChangeRequest
 from datetime import datetime, timedelta
 import bcrypt
 from werkzeug.exceptions import BadRequest
@@ -48,11 +48,27 @@ class UserService:
 
 		user = User(name, surname, email, username, password_hash, 0)
 
-		if type != 0:
-			# TODO - Add account type request
-			pass
-
 		db.session.add(user)
+		db.session.flush()
+
+		if type != 0:
+			request = TypeChangeRequest(type, user.id)
+			db.session.add(request)
+
 		db.session.commit()
 
 		return user
+
+	@staticmethod
+	def request_type_change(new_type, user_id):
+		request = db.session.query(TypeChangeRequest).filter(TypeChangeRequest.user_id == user_id).one_or_none()
+		if request is not None:
+			request.type = new_type
+			request.accepted = None
+			request.comment = None
+		else:
+			request = TypeChangeRequest(new_type, user_id)
+			db.session.add(request)
+
+		db.session.commit()
+		return request

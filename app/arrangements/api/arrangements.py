@@ -1,7 +1,8 @@
 from app.arrangements import arrangement_bp
 from flask import request, session, redirect
 from app.arrangements.schemas import ArrangementBasicResponseSchema, ArrangementFullResponseSchema, MetaSchema, \
-	ArrangementsBasicResultSchema, ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema
+	ArrangementsBasicResultSchema, ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, \
+	TypeChangeRequestSchema, TypeChangeResponseSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import re
@@ -14,6 +15,8 @@ arrangements_basic_result_schema = ArrangementsBasicResultSchema()
 arrangements_full_result_schema = ArrangementsFullResultSchema()
 user_registration_schema = UserRegistrationSchema()
 user_login_schema = UserLoginSchema()
+type_change_request_schema = TypeChangeRequestSchema()
+type_change_response_schema = TypeChangeResponseSchema()
 
 
 # all arrangements - no user
@@ -113,3 +116,24 @@ def register_user():
 		return redirect(f"user/available")
 	else:
 		return redirect(f"user/all")
+
+
+# type change request
+@arrangement_bp.post("user/request_change")
+def request_type_change():
+	data = type_change_request_schema.load(request.json)
+	user_id = session.get("id")
+	if not user_id:
+		raise Forbidden(f"Access forbidden")
+
+	new_type = data.get("new_type")
+
+	user = UserService.get_by_id(user_id)
+
+	if new_type <= user.type:
+		raise NotAcceptable("Cannot request that type")
+
+	req = UserService.request_type_change(new_type, user_id)
+
+	# TODO - Redirect to see request
+	return type_change_response_schema.dump(req)

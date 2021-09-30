@@ -49,3 +49,13 @@ class UserRegistrationSchema(Schema):
 class UserLoginSchema(Schema):
 	username = fields.String(required = True)
 	password = fields.String(required = True)
+
+
+class TypeChangeRequestSchema(Schema):
+	new_type = fields.Integer(required = True)
+
+
+class TypeChangeResponseSchema(Schema):
+	type = fields.Integer(required = True)
+	accepted = fields.Boolean()
+	comment = fields.String()
