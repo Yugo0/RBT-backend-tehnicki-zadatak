@@ -32,7 +32,7 @@ def get_all():
 def get_all_user():
 	id = session.get("id")
 	if not id:
-		raise Forbidden(f"Access forbidden")
+		raise Forbidden("Access forbidden")
 
 	user = UserService.get_by_id(id)
 
@@ -40,10 +40,31 @@ def get_all_user():
 		raise NotFound(f"User with id {id} not found")
 
 	if user.type == 0:
-		raise Forbidden(f"Access forbidden for this account type")
+		raise Forbidden("Access forbidden for this account type")
 
 	data = meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_all(data)
+
+	return arrangements_full_result_schema.dump(arrangements)
+
+
+# created arrangements - admin
+@arrangement_bp.get("user/created")
+def get_created():
+	id = session.get("id")
+	if not id:
+		raise Forbidden("Access forbidden")
+
+	user = UserService.get_by_id(id)
+
+	if not user:
+		raise NotFound(f"User with id {id} not found")
+
+	if user.type != 2:
+		raise Forbidden("Access forbidden for this account type")
+
+	data = meta_schema.load(request.args.to_dict())
+	arrangements = ArrangementService.get_created(data, user.id)
 
 	return arrangements_full_result_schema.dump(arrangements)
 
@@ -53,7 +74,7 @@ def get_all_user():
 def get_available():
 	id = session.get("id")
 	if not id:
-		raise Forbidden(f"Access forbidden")
+		raise Forbidden("Access forbidden")
 
 	user = UserService.get_by_id(id)
 
@@ -61,7 +82,7 @@ def get_available():
 		raise NotFound(f"User with id {id} not found")
 
 	if user.type != 0:
-		raise Forbidden(f"Access forbidden for this account type")
+		raise Forbidden("Access forbidden for this account type")
 
 	data = meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_available(data, id)
@@ -85,9 +106,9 @@ def user_login():
 	session["id"] = user.id
 
 	if user.type == 0:
-		return redirect(f"user/available")
+		return redirect("user/available")
 	else:
-		return redirect(f"user/all")
+		return redirect("user/all")
 
 
 # user logout
@@ -113,9 +134,9 @@ def register_user():
 	session["id"] = user.id
 
 	if user.type == 0:
-		return redirect(f"user/available")
+		return redirect("user/available")
 	else:
-		return redirect(f"user/all")
+		return redirect("user/all")
 
 
 # type change request
@@ -133,7 +154,18 @@ def request_type_change():
 	if new_type <= user.type:
 		raise NotAcceptable("Cannot request that type")
 
-	req = UserService.request_type_change(new_type, user_id)
+	UserService.request_type_change(new_type, user_id)
 
-	# TODO - Redirect to see request
+	return redirect("user/request")
+
+
+# inspect type change request
+@arrangement_bp.get("user/request")
+def inspect_request():
+	user_id = session.get("id")
+	if not user_id:
+		raise Forbidden("Access forbidden")
+
+	req = UserService.get_request_by_user_id(user_id)
+
 	return type_change_response_schema.dump(req)

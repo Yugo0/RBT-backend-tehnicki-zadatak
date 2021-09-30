@@ -10,14 +10,16 @@ class Arrangement(db.Model):
 	destination = db.Column(db.String, nullable = False)
 	vacancies = db.Column(db.Integer, nullable = False)
 	price = db.Column(db.Float, nullable = False)
+	admin_id = db.Column(db.Integer(), db.ForeignKey("users.id"), nullable = False)
 
-	def __init__(self, start_date, end_date, description, destination, vacancies, price):
+	def __init__(self, start_date, end_date, description, destination, vacancies, price, admin_id):
 		self.start_date = start_date
 		self.end_date = end_date
 		self.description = description
 		self.destination = destination
 		self.vacancies = vacancies
 		self.price = price
+		self.admin_id = admin_id
 
 
 class User(db.Model):
@@ -31,6 +33,7 @@ class User(db.Model):
 	type = db.Column(db.Integer, nullable = False)  # 0 - TOURIST, 1 - TRAVEL GUIDE, 2 - ADMIN
 
 	type_change_requests = db.relationship("TypeChangeRequest", backref = "users", lazy = True)
+	created_arrangements = db.relationship("Arrangement", backref = "users", lazy = True)
 
 	def __init__(self, name, surname, email, username, password_hash, type):
 		self.name = name

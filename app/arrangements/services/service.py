@@ -19,6 +19,12 @@ class ArrangementService:
 			page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
 
+	@staticmethod
+	def get_created(data, id):
+		arrangements = db.session.query(Arrangement).filter(Arrangement.admin_id == id).paginate(
+			page = data.get("page"), per_page = data.get("per_page"))
+		return arrangements
+
 
 class UserService:
 	@staticmethod
@@ -71,4 +77,8 @@ class UserService:
 			db.session.add(request)
 
 		db.session.commit()
+
+	@staticmethod
+	def get_request_by_user_id(user_id):
+		request = db.session.query(TypeChangeRequest).filter(TypeChangeRequest.user_id == user_id).one_or_none()
 		return request
