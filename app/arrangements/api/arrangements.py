@@ -1,8 +1,9 @@
 from app.arrangements import arrangement_bp
 from flask import request, session, redirect
-from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, TypeChangeRequestSchema, \
+from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, ArrangementsBasicResultSchema, \
+	ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, TypeChangeRequestSchema, \
 	TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, ReserveResponseSchema, \
-	ArrangementsDescriptionChangeRequestSchema
+	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import re
@@ -20,6 +21,15 @@ reservations_response_schema = ReservationsResponseSchema()
 reserve_request_schema = ReserveRequestSchema()
 reserve_response_schema = ReserveResponseSchema()
 arrangement_description_change_request_schema = ArrangementsDescriptionChangeRequestSchema()
+type_change_list_schema = TypeChangeListSchema()
+type_change_decision_schema = TypeChangeDecisionSchema()
+
+
+# TODO - Delete this
+@arrangement_bp.get("test")
+def test():
+	res = UserService.test()
+	return res
 
 
 # all arrangements - no user
@@ -260,3 +270,49 @@ def change_description():
 	arrangement = ArrangementService.change_description(data, user_id)
 
 	return arrangement_full_response_schema.dump(arrangement)
+
+
+# view type change requests - admin
+@arrangement_bp.get("user/type_change_requests")
+def view_all_requests():
+	user_id = session.get("id")
+	if not user_id:
+		raise Forbidden("Access forbidden")
+
+	user = UserService.get_by_id(user_id)
+
+	if not user:
+		raise NotFound(f"User with id {user_id} not found")
+
+	if user.type != 2:
+		raise Forbidden("Access forbidden for this account type")
+
+	data = meta_schema.load(request.args.to_dict())
+	requests = UserService.get_requests(data)
+
+	return type_change_list_schema.dump(requests)
+
+
+# view type change requests - admin
+@arrangement_bp.patch("user/type_change/decide")
+def decide_on_type_change():
+	user_id = session.get("id")
+	if not user_id:
+		raise Forbidden("Access forbidden")
+
+	user = UserService.get_by_id(user_id)
+
+	if not user:
+		raise NotFound(f"User with id {user_id} not found")
+
+	if user.type != 2:
+		raise Forbidden("Access forbidden for this account type")
+
+	data = type_change_decision_schema.load(request.json)
+
+	if not data.get("accepted") and data.get("comment") is None:
+		raise NotAcceptable("Type request denial must be commented on")
+
+	requests = UserService.decide_on_request(data)
+
+	return type_change_decision_schema.dump(requests)

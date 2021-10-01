@@ -1,8 +1,9 @@
-from app import db
+from app import db, mail
 from app.arrangements.models import Arrangement, User, TypeChangeRequest, Reservation
 from datetime import datetime, timedelta
 import bcrypt
 from werkzeug.exceptions import BadRequest, NotAcceptable, NotFound, Forbidden
+from flask_mail import Message
 
 
 class ArrangementService:
@@ -28,7 +29,7 @@ class ArrangementService:
 	def get_reservations(data, id):
 		reservations = db.session.query(Arrangement.start_date, Arrangement.end_date, Arrangement.destination,
 			Reservation.count, Reservation.price).join(Arrangement).filter(
-			Arrangement.id == Reservation.arrangement_id).filter(Reservation.user_id == id).paginate(
+			Arrangement.id == Reservation.arrangement_id, Reservation.user_id == id).paginate(
 			page = data.get("page"), per_page = data.get("per_page"))
 		return reservations
 
@@ -145,3 +146,53 @@ class UserService:
 	def get_request_by_user_id(user_id):
 		request = db.session.query(TypeChangeRequest).filter(TypeChangeRequest.user_id == user_id).one_or_none()
 		return request
+
+	@staticmethod
+	def get_requests(data):
+		requests = db.session.query(TypeChangeRequest.id, User.username, TypeChangeRequest.type).join(User).filter(
+			User.id == TypeChangeRequest.user_id).paginate(page = data.get("page"), per_page = data.get("per_page"))
+		return requests
+
+	@staticmethod
+	def decide_on_request(data):
+		id = data.get("id")
+		request = db.session.query(TypeChangeRequest).filter(TypeChangeRequest.id == id).one_or_none()
+
+		if not request:
+			raise NotFound(f"Request with id {id} not found")
+
+		request.accepted = data.get("accepted")
+		request.comment = data.get("comment")
+
+		if request.accepted:
+			user = UserService.get_by_id(request.user_id)
+			user.type = request.type
+
+		db.session.commit()
+
+		# TODO - Send e-mail (This works on this end)
+		# if request.accepted:
+		# 	msg = Message("Request accepted", recipients = [user.email])
+		# 	msg.body = f"Dear {user.name} {user.surname}," \
+		# 			   f"" \
+		# 			   f"Your request has been accepted."
+		# 	mail.send(msg)
+		# else:
+		# 	msg = Message("Request denied", recipients = [user.email])
+		# 	msg.body = f"Dear {user.name} {user.surname}," \
+		# 			   f"" \
+		# 			   f"Your request has been denied, reason being:" \
+		# 			   f"" \
+		# 			   f"{request.comment}"
+		# 	mail.send(msg)
+
+		return request
+
+	# TODO - Delete this
+	@staticmethod
+	def test():
+		msg = Message("Test Subject", recipients=["test.testic@yopmail.com"])
+		msg.body = "Test Body"
+		mail.send(msg)
+
+		return msg.body

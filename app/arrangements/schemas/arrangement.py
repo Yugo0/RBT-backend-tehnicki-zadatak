@@ -86,3 +86,19 @@ class ReserveResponseSchema(Schema):
 class ArrangementsDescriptionChangeRequestSchema(Schema):
 	description = fields.String()
 	arrangement_id = fields.Integer()
+
+
+class TypeChangeViewSchema(Schema):
+	id = fields.Integer()
+	username = fields.String()
+	type = fields.Integer()
+
+
+class TypeChangeListSchema(MetaCollectionSchema):
+	items = fields.List(fields.Nested(TypeChangeViewSchema()), data_key = "response")
+
+
+class TypeChangeDecisionSchema(Schema):
+	id = fields.Integer(required = True)
+	accepted = fields.Boolean(required = True)
+	comment = fields.String()
