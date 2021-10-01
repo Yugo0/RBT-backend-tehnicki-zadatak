@@ -11,6 +11,7 @@ class Arrangement(db.Model):
 	vacancies = db.Column(db.Integer, nullable = False)
 	price = db.Column(db.Float, nullable = False)
 	admin_id = db.Column(db.Integer(), db.ForeignKey("users.id"), nullable = False)
+	guide_id = db.Column(db.Integer())
 
 	reservations = db.relationship("Reservation", backref = "arrangements", lazy = True)
 

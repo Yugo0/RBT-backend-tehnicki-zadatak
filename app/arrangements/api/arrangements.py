@@ -1,15 +1,13 @@
 from app.arrangements import arrangement_bp
 from flask import request, session, redirect
-from app.arrangements.schemas import ArrangementBasicResponseSchema, ArrangementFullResponseSchema, MetaSchema, \
-	ArrangementsBasicResultSchema, ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, \
-	TypeChangeRequestSchema, TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, \
-	ReserveResponseSchema
+from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, TypeChangeRequestSchema, \
+	TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, ReserveResponseSchema, \
+	ArrangementsDescriptionChangeRequestSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import re
 import bcrypt
 
-arrangement_basic_response_schema = ArrangementBasicResponseSchema()
 arrangement_full_response_schema = ArrangementFullResponseSchema()
 meta_schema = MetaSchema()
 arrangements_basic_result_schema = ArrangementsBasicResultSchema()
@@ -21,6 +19,7 @@ type_change_response_schema = TypeChangeResponseSchema()
 reservations_response_schema = ReservationsResponseSchema()
 reserve_request_schema = ReserveRequestSchema()
 reserve_response_schema = ReserveResponseSchema()
+arrangement_description_change_request_schema = ArrangementsDescriptionChangeRequestSchema()
 
 
 # all arrangements - no user
@@ -69,6 +68,27 @@ def get_created():
 
 	data = meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_created(data, user.id)
+
+	return arrangements_full_result_schema.dump(arrangements)
+
+
+# designated arrangements - guide
+@arrangement_bp.get("user/designated")
+def get_designated():
+	id = session.get("id")
+	if not id:
+		raise Forbidden("Access forbidden")
+
+	user = UserService.get_by_id(id)
+
+	if not user:
+		raise NotFound(f"User with id {id} not found")
+
+	if user.type != 1:
+		raise Forbidden("Access forbidden for this account type")
+
+	data = meta_schema.load(request.args.to_dict())
+	arrangements = ArrangementService.get_designated(data, user.id)
 
 	return arrangements_full_result_schema.dump(arrangements)
 
@@ -171,10 +191,13 @@ def request_type_change():
 	if not user_id:
 		raise Forbidden(f"Access forbidden")
 
+	user = UserService.get_by_id(user_id)
+
+	if not user:
+		raise NotFound(f"User with id {user_id} not found")
+
 	data = type_change_request_schema.load(request.json)
 	new_type = data.get("new_type")
-
-	user = UserService.get_by_id(user_id)
 
 	if new_type <= user.type:
 		raise NotAcceptable("Cannot request that type")
@@ -196,14 +219,44 @@ def inspect_request():
 	return type_change_response_schema.dump(req)
 
 
-# reserve arrangement
+# reserve arrangement - tourst
 @arrangement_bp.post("arrangement/reserve")
 def reserve_arrangement():
 	user_id = session.get("id")
 	if not user_id:
 		raise Forbidden("Access forbidden")
 
+	user = UserService.get_by_id(user_id)
+
+	if not user:
+		raise NotFound(f"User with id {user_id} not found")
+
+	if user.type != 0:
+		raise Forbidden("Access forbidden for this account type")
+
 	data = reserve_request_schema.load(request.json)
 	reservation = ArrangementService.reserve(data, user_id)
 
 	return reserve_response_schema.dump(reservation)
+
+
+# change arrangement description - guide
+@arrangement_bp.patch("arrangement/change_description")
+def change_description():
+	user_id = session.get("id")
+	if not user_id:
+		raise Forbidden("Access forbidden")
+
+	user = UserService.get_by_id(user_id)
+
+	if not user:
+		raise NotFound(f"User with id {user_id} not found")
+
+	if user.type != 1:
+		raise Forbidden("Access forbidden for this account type")
+
+	data = arrangement_description_change_request_schema.load(request.json)
+
+	arrangement = ArrangementService.change_description(data, user_id)
+
+	return arrangement_full_response_schema.dump(arrangement)

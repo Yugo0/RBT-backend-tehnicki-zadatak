@@ -81,3 +81,8 @@ class ReserveRequestSchema(Schema):
 class ReserveResponseSchema(Schema):
 	count = fields.Integer()
 	price = fields.Float()
+
+
+class ArrangementsDescriptionChangeRequestSchema(Schema):
+	description = fields.String()
+	arrangement_id = fields.Integer()

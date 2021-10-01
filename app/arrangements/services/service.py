@@ -2,7 +2,7 @@ from app import db
 from app.arrangements.models import Arrangement, User, TypeChangeRequest, Reservation
 from datetime import datetime, timedelta
 import bcrypt
-from werkzeug.exceptions import BadRequest, NotAcceptable
+from werkzeug.exceptions import BadRequest, NotAcceptable, NotFound, Forbidden
 
 
 class ArrangementService:
@@ -39,8 +39,19 @@ class ArrangementService:
 		return arrangements
 
 	@staticmethod
+	def get_designated(data, id):
+		arrangements = db.session.query(Arrangement).filter(Arrangement.guide_id == id).paginate(
+			page = data.get("page"), per_page = data.get("per_page"))
+		return arrangements
+
+	@staticmethod
 	def reserve(data, user_id):
 		arrangement = db.session.query(Arrangement).filter(Arrangement.id == data.get("arrangement_id")).one_or_none()
+
+		from_date = datetime.now() + timedelta(days = 5)
+		if arrangement.start_date < from_date:
+			raise NotAcceptable("Too late to reserve")
+
 		count = data.get("count")
 		if count > arrangement.vacancies:
 			raise NotAcceptable("Not enough vacancies")
@@ -56,6 +67,26 @@ class ArrangementService:
 		db.session.commit()
 
 		return reservation
+
+	@staticmethod
+	def change_description(data, user_id):
+		arrangement_id = data.get("arrangement_id")
+		arrangement = db.session.query(Arrangement).filter(Arrangement.id == arrangement_id).one_or_none()
+
+		if not arrangement:
+			raise NotFound(f"Arrangement with id {arrangement_id} not found")
+
+		if arrangement.guide_id != user_id:
+			raise Forbidden("Access forbidden")
+
+		from_date = datetime.now() + timedelta(days = 5)
+		if arrangement.start_date < from_date:
+			raise NotAcceptable("Too late to change description")
+
+		arrangement.description = data.get("description")
+		db.session.commit()
+
+		return arrangement
 
 
 class UserService:
