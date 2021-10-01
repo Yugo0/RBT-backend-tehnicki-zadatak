@@ -89,6 +89,22 @@ class ArrangementService:
 
 		return arrangement
 
+	@staticmethod
+	def search_arrangements(data):
+		arrangements = db.session.query(Arrangement)
+
+		if data.get("destination"):
+			arrangements = arrangements.filter(Arrangement.destination == data.get("destination"))
+		if data.get("date_from"):
+			date_from = datetime.strptime(data.get("date_from"), "%Y-%m-%d")
+			arrangements = arrangements.filter(Arrangement.start_date > date_from)
+		if data.get("date_to"):
+			date_to = datetime.strptime(data.get("date_from"), "%Y-%m-%d")
+			arrangements = arrangements.filter(Arrangement.end_date < date_to)
+
+		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
+		return arrangements
+
 
 class UserService:
 	@staticmethod
@@ -170,7 +186,7 @@ class UserService:
 
 		db.session.commit()
 
-		# TODO - Send e-mail (This works on this end)
+		# TODO - This works, but not through dorm's proxy server, keep commented for now
 		# if request.accepted:
 		# 	msg = Message("Request accepted", recipients = [user.email])
 		# 	msg.body = f"Dear {user.name} {user.surname}," \
@@ -187,12 +203,3 @@ class UserService:
 		# 	mail.send(msg)
 
 		return request
-
-	# TODO - Delete this
-	@staticmethod
-	def test():
-		msg = Message("Test Subject", recipients=["test.testic@yopmail.com"])
-		msg.body = "Test Body"
-		mail.send(msg)
-
-		return msg.body

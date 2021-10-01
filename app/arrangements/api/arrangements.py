@@ -3,7 +3,7 @@ from flask import request, session, redirect
 from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, ArrangementsBasicResultSchema, \
 	ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, TypeChangeRequestSchema, \
 	TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, ReserveResponseSchema, \
-	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema
+	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, SearchRequestSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import re
@@ -23,13 +23,23 @@ reserve_response_schema = ReserveResponseSchema()
 arrangement_description_change_request_schema = ArrangementsDescriptionChangeRequestSchema()
 type_change_list_schema = TypeChangeListSchema()
 type_change_decision_schema = TypeChangeDecisionSchema()
+search_request_schema = SearchRequestSchema()
 
 
-# TODO - Delete this
-@arrangement_bp.get("test")
-def test():
-	res = UserService.test()
-	return res
+def validate_session(user_type):
+	user_id = session.get("id")
+	if not user_id:
+		raise Forbidden("Access forbidden")
+
+	user = UserService.get_by_id(user_id)
+
+	if not user:
+		raise NotFound(f"User with id {user_id} not found")
+
+	if user.type != user_type:
+		raise Forbidden("Access forbidden for this account type")
+
+	return user
 
 
 # all arrangements - no user
@@ -64,17 +74,7 @@ def get_all_user():
 # created arrangements - admin
 @arrangement_bp.get("user/created")
 def get_created():
-	id = session.get("id")
-	if not id:
-		raise Forbidden("Access forbidden")
-
-	user = UserService.get_by_id(id)
-
-	if not user:
-		raise NotFound(f"User with id {id} not found")
-
-	if user.type != 2:
-		raise Forbidden("Access forbidden for this account type")
+	user = validate_session(2)
 
 	data = meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_created(data, user.id)
@@ -85,17 +85,7 @@ def get_created():
 # designated arrangements - guide
 @arrangement_bp.get("user/designated")
 def get_designated():
-	id = session.get("id")
-	if not id:
-		raise Forbidden("Access forbidden")
-
-	user = UserService.get_by_id(id)
-
-	if not user:
-		raise NotFound(f"User with id {id} not found")
-
-	if user.type != 1:
-		raise Forbidden("Access forbidden for this account type")
+	user = validate_session(1)
 
 	data = meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_designated(data, user.id)
@@ -106,20 +96,10 @@ def get_designated():
 # available arrangements - tourist
 @arrangement_bp.get("user/available")
 def get_available():
-	id = session.get("id")
-	if not id:
-		raise Forbidden("Access forbidden")
-
-	user = UserService.get_by_id(id)
-
-	if not user:
-		raise NotFound(f"User with id {id} not found")
-
-	if user.type != 0:
-		raise Forbidden("Access forbidden for this account type")
+	user = validate_session(0)
 
 	data = meta_schema.load(request.args.to_dict())
-	arrangements = ArrangementService.get_available(data, id)
+	arrangements = ArrangementService.get_available(data, user.id)
 
 	return arrangements_full_result_schema.dump(arrangements)
 
@@ -127,20 +107,10 @@ def get_available():
 # reservations - tourist
 @arrangement_bp.get("user/reservations")
 def get_reservations():
-	id = session.get("id")
-	if not id:
-		raise Forbidden("Access forbidden")
-
-	user = UserService.get_by_id(id)
-
-	if not user:
-		raise NotFound(f"User with id {id} not found")
-
-	if user.type != 0:
-		raise Forbidden("Access forbidden for this account type")
+	user = validate_session(0)
 
 	data = meta_schema.load(request.args.to_dict())
-	reservations = ArrangementService.get_reservations(data, id)
+	reservations = ArrangementService.get_reservations(data, user.id)
 
 	return reservations_response_schema.dump(reservations)
 
@@ -232,20 +202,10 @@ def inspect_request():
 # reserve arrangement - tourst
 @arrangement_bp.post("arrangement/reserve")
 def reserve_arrangement():
-	user_id = session.get("id")
-	if not user_id:
-		raise Forbidden("Access forbidden")
-
-	user = UserService.get_by_id(user_id)
-
-	if not user:
-		raise NotFound(f"User with id {user_id} not found")
-
-	if user.type != 0:
-		raise Forbidden("Access forbidden for this account type")
+	user = validate_session(0)
 
 	data = reserve_request_schema.load(request.json)
-	reservation = ArrangementService.reserve(data, user_id)
+	reservation = ArrangementService.reserve(data, user.id)
 
 	return reserve_response_schema.dump(reservation)
 
@@ -253,21 +213,11 @@ def reserve_arrangement():
 # change arrangement description - guide
 @arrangement_bp.patch("arrangement/change_description")
 def change_description():
-	user_id = session.get("id")
-	if not user_id:
-		raise Forbidden("Access forbidden")
-
-	user = UserService.get_by_id(user_id)
-
-	if not user:
-		raise NotFound(f"User with id {user_id} not found")
-
-	if user.type != 1:
-		raise Forbidden("Access forbidden for this account type")
+	user = validate_session(1)
 
 	data = arrangement_description_change_request_schema.load(request.json)
 
-	arrangement = ArrangementService.change_description(data, user_id)
+	arrangement = ArrangementService.change_description(data, user.id)
 
 	return arrangement_full_response_schema.dump(arrangement)
 
@@ -275,17 +225,7 @@ def change_description():
 # view type change requests - admin
 @arrangement_bp.get("user/type_change_requests")
 def view_all_requests():
-	user_id = session.get("id")
-	if not user_id:
-		raise Forbidden("Access forbidden")
-
-	user = UserService.get_by_id(user_id)
-
-	if not user:
-		raise NotFound(f"User with id {user_id} not found")
-
-	if user.type != 2:
-		raise Forbidden("Access forbidden for this account type")
+	validate_session(2)
 
 	data = meta_schema.load(request.args.to_dict())
 	requests = UserService.get_requests(data)
@@ -296,17 +236,7 @@ def view_all_requests():
 # view type change requests - admin
 @arrangement_bp.patch("user/type_change/decide")
 def decide_on_type_change():
-	user_id = session.get("id")
-	if not user_id:
-		raise Forbidden("Access forbidden")
-
-	user = UserService.get_by_id(user_id)
-
-	if not user:
-		raise NotFound(f"User with id {user_id} not found")
-
-	if user.type != 2:
-		raise Forbidden("Access forbidden for this account type")
+	validate_session(2)
 
 	data = type_change_decision_schema.load(request.json)
 
@@ -316,3 +246,12 @@ def decide_on_type_change():
 	requests = UserService.decide_on_request(data)
 
 	return type_change_decision_schema.dump(requests)
+
+
+# search arrangements - tourist
+@arrangement_bp.get("arrangements/search")
+def search_arrangements():
+	validate_session(0)
+	data = search_request_schema.load(request.args.to_dict())
+	arrangements = ArrangementService.search_arrangements(data)
+	return arrangements_full_result_schema.dump(arrangements)

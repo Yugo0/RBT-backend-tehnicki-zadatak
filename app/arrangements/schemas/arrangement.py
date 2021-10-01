@@ -1,5 +1,6 @@
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validates, ValidationError
 from app.arrangements.constants import PAGE, PER_PAGE
+from datetime import datetime
 
 
 class ArrangementBasicResponseSchema(Schema):
@@ -102,3 +103,23 @@ class TypeChangeDecisionSchema(Schema):
 	id = fields.Integer(required = True)
 	accepted = fields.Boolean(required = True)
 	comment = fields.String()
+
+
+class SearchRequestSchema(MetaSchema):
+	date_from = fields.String()
+	date_to = fields.String()
+	destination = fields.String()
+
+	@validates("date_from")
+	def validate_date_from(self, value):
+		try:
+			datetime.strptime(value, "%Y-%m-%d")
+		except ValueError:
+			raise ValidationError("Wrong date format")
+
+	@validates("date_to")
+	def validate_date_to(self, value):
+		try:
+			datetime.strptime(value, "%Y-%m-%d")
+		except ValueError:
+			raise ValidationError("Wrong date format")
