@@ -3,7 +3,8 @@ from flask import request, session, redirect
 from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, ArrangementsBasicResultSchema, \
 	ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, TypeChangeRequestSchema, \
 	TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, ReserveResponseSchema, \
-	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, SearchRequestSchema
+	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, SearchRequestSchema, \
+	CancelArrangementSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import re
@@ -24,6 +25,7 @@ arrangement_description_change_request_schema = ArrangementsDescriptionChangeReq
 type_change_list_schema = TypeChangeListSchema()
 type_change_decision_schema = TypeChangeDecisionSchema()
 search_request_schema = SearchRequestSchema()
+cancel_arrangement_schema = CancelArrangementSchema()
 
 
 def validate_session(user_type):
@@ -255,3 +257,12 @@ def search_arrangements():
 	data = search_request_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.search_arrangements(data)
 	return arrangements_full_result_schema.dump(arrangements)
+
+
+# cancel arrangement - admin
+@arrangement_bp.delete("cancel")
+def cancel_arrangement():
+	user = validate_session(2)
+	data = cancel_arrangement_schema.load(request.json)
+	ArrangementService.cancel(data, user.id)
+	return redirect("user/created")

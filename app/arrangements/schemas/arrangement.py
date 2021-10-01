@@ -123,3 +123,7 @@ class SearchRequestSchema(MetaSchema):
 			datetime.strptime(value, "%Y-%m-%d")
 		except ValueError:
 			raise ValidationError("Wrong date format")
+
+
+class CancelArrangementSchema(Schema):
+	id = fields.Integer()
