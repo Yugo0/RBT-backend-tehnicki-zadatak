@@ -221,13 +221,12 @@ class ArrangementService:
 		db.session.delete(arrangement)
 		db.session.commit()
 
-	# TODO - This works, but not through dorm's proxy server, keep commented for now
-	# msg = Message("Arrangement canceled", recipients = [emails])
-	# msg.body = f"Dear customer,\n" \
-	# 		   f"\n" \
-	# 		   f"We must inform you that out arrangement to {arrangement.destination} due between " \
-	# 		   f"{arrangement.start_date} and {arrangement.end_date} has been cancelled."
-	# mail.send(msg)
+		msg = Message("Arrangement canceled", recipients = [emails])
+		msg.body = f"Dear customer,\n" \
+				   f"\n" \
+				   f"We must inform you that out arrangement to {arrangement.destination} due between " \
+				   f"{arrangement.start_date} and {arrangement.end_date} has been cancelled."
+		mail.send(msg)
 
 	@staticmethod
 	def set_guide(data, user_id):
@@ -426,27 +425,26 @@ class UserService:
 		request.accepted = data.get("accepted")
 		request.comment = data.get("comment")
 
+		user = UserService.get_by_id(request.user_id)
 		if request.accepted:
-			user = UserService.get_by_id(request.user_id)
 			user.type = request.type
 
 		db.session.commit()
 
-		# TODO - This works, but not through dorm's proxy server, keep commented for now
-		# if request.accepted:
-		# 	msg = Message("Request accepted", recipients = [user.email])
-		# 	msg.body = f"Dear {user.name} {user.surname},\n" \
-		# 			   f"\n" \
-		# 			   f"Your request has been accepted."
-		# 	mail.send(msg)
-		# else:
-		# 	msg = Message("Request denied", recipients = [user.email])
-		# 	msg.body = f"Dear {user.name} {user.surname},\n" \
-		# 			   f"\n" \
-		# 			   f"Your request has been denied, reason being:\n" \
-		# 			   f"\n" \
-		# 			   f"{request.comment}"
-		# 	mail.send(msg)
+		if request.accepted:
+			msg = Message("Request accepted", recipients = [user.email])
+			msg.body = f"Dear {user.name} {user.surname},\n" \
+					   f"\n" \
+					   f"Your request has been accepted."
+			mail.send(msg)
+		else:
+			msg = Message("Request denied", recipients = [user.email])
+			msg.body = f"Dear {user.name} {user.surname},\n" \
+					   f"\n" \
+					   f"Your request has been denied, reason being:\n" \
+					   f"\n" \
+					   f"{request.comment}"
+			mail.send(msg)
 
 		return request
 
