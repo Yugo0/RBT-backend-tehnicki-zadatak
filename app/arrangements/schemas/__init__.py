@@ -2,5 +2,5 @@ from .arrangement import ArrangementBasicResponseSchema, ArrangementFullResponse
 	ArrangementsBasicResultSchema, ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, \
 	TypeChangeRequestSchema, TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, \
 	ReserveResponseSchema, ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, \
-	SearchRequestSchema, ArrangementRequestSchema, SetGuideSchema, ArrangementGuideResponseSchema, UserResponseSchema, \
-	UserUpdateSchema, ArrangementUpdateRequestSchema
+	SearchRequestSchema, IdRequestSchema, SetGuideSchema, ArrangementGuideResponseSchema, UserResponseSchema, \
+	UserUpdateSchema, ArrangementUpdateRequestSchema, UserListResponseSchema, UserMetaSchema

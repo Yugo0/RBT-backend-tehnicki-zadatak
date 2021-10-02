@@ -203,6 +203,26 @@ class ArrangementService:
 		db.session.commit()
 		return arrangement
 
+	@staticmethod
+	def get_past(data, user_id):
+		today = datetime.now()
+		arrangements = db.session.query(Arrangement).join(Reservation).filter(Reservation.user_id == user_id,
+			Arrangement.end_date < today).paginate(page = data.get("page"), per_page = data.get("per_page"))
+		return arrangements
+
+	@staticmethod
+	def get_future(data, user_id):
+		today = datetime.now()
+		arrangements = db.session.query(Arrangement).join(Reservation).filter(Reservation.user_id == user_id,
+			Arrangement.start_date > today).paginate(page = data.get("page"), per_page = data.get("per_page"))
+		return arrangements
+
+	@staticmethod
+	def get_guide_arrangements(data, user_id):
+		arrangements = db.session.query(Arrangement).filter(Arrangement.guide_id == user_id).paginate(
+			page = data.get("page"), per_page = data.get("per_page"))
+		return arrangements
+
 
 class UserService:
 	@staticmethod
@@ -328,3 +348,14 @@ class UserService:
 
 		db.session.commit()
 		return user
+
+	@staticmethod
+	def get_users(data):
+		users = db.session.query(User)
+
+		if data.get("type") in [0, 1, 2]:
+			users = users.filter(User.type == data.get("type"))
+
+		users = users.paginate(page = data.get("page"), per_page = data.get("per_page"))
+
+		return users

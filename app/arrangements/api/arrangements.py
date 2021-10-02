@@ -4,8 +4,8 @@ from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, 
 	ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, TypeChangeRequestSchema, \
 	TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, ReserveResponseSchema, \
 	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, SearchRequestSchema, \
-	ArrangementRequestSchema, SetGuideSchema, ArrangementGuideResponseSchema, UserResponseSchema, UserUpdateSchema, \
-	ArrangementUpdateRequestSchema
+	IdRequestSchema, SetGuideSchema, ArrangementGuideResponseSchema, UserResponseSchema, UserUpdateSchema, \
+	ArrangementUpdateRequestSchema, UserListResponseSchema, UserMetaSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import bcrypt
@@ -25,12 +25,14 @@ arrangement_description_change_request_schema = ArrangementsDescriptionChangeReq
 type_change_list_schema = TypeChangeListSchema()
 type_change_decision_schema = TypeChangeDecisionSchema()
 search_request_schema = SearchRequestSchema()
-arrangement_request_schema = ArrangementRequestSchema()
+id_request_schema = IdRequestSchema()
 set_guide_schema = SetGuideSchema()
 arrangement_guide_response_schema = ArrangementGuideResponseSchema()
 user_response_schema = UserResponseSchema()
 user_update_schema = UserUpdateSchema()
 arrangement_update_request_schema = ArrangementUpdateRequestSchema()
+user_list_response_schema = UserListResponseSchema()
+user_meta_schema = UserMetaSchema()
 
 
 def validate_session(user_type):
@@ -262,7 +264,7 @@ def search_arrangements():
 @arrangement_bp.delete("cancel")
 def cancel_arrangement():
 	user = validate_session(2)
-	data = arrangement_request_schema.load(request.json)
+	data = id_request_schema.load(request.json)
 	ArrangementService.cancel(data, user.id)
 	return redirect("user/created")
 
@@ -306,10 +308,90 @@ def update_arrangement():
 @arrangement_bp.get("arrangement/details")
 def view_arrangement():
 	validate_session(2)
-	data = arrangement_request_schema.load(request.json)
+	data = id_request_schema.load(request.json)
 	arrangement = ArrangementService.get_by_id(data.get("id"))
 
 	if not arrangement:
 		raise NotFound(f"Arrangement with id {data.get('id')} not found")
 
 	return arrangement_full_response_schema.dump(arrangement)
+
+
+# view user - admin
+@arrangement_bp.get("user/details")
+def view_user():
+	validate_session(2)
+	data = id_request_schema.load(request.json)
+	user = UserService.get_by_id(data.get("id"))
+
+	if not user:
+		raise NotFound(f"User with id {data.get('id')} not found")
+
+	return user_response_schema.dump(user)
+
+
+# view user list - admin
+@arrangement_bp.get("users")
+def view_users():
+	validate_session(2)
+	data = user_meta_schema.load(request.args.to_dict())
+	users = UserService.get_users(data)
+
+	return user_list_response_schema.dump(users)
+
+
+# view tourist's past arrangements - admin
+@arrangement_bp.get("user/past")
+def view_past_arrangements():
+	validate_session(2)
+	data = id_request_schema.load(request.json)
+	metadata = meta_schema.load(request.args)
+	user = UserService.get_by_id(data.get("id"))
+
+	if not user:
+		raise NotFound(f"User with id {data.get('id')} not found")
+
+	if user.type != 0:
+		raise Forbidden("Access forbidden")
+
+	arrangements = ArrangementService.get_past(metadata, user.id)
+
+	return arrangements_full_result_schema.dump(arrangements)
+
+
+# view tourist's future arrangements - admin
+@arrangement_bp.get("user/future")
+def view_future_arrangements():
+	validate_session(2)
+	data = id_request_schema.load(request.json)
+	metadata = meta_schema.load(request.args)
+	user = UserService.get_by_id(data.get("id"))
+
+	if not user:
+		raise NotFound(f"User with id {data.get('id')} not found")
+
+	if user.type != 0:
+		raise Forbidden("Access forbidden")
+
+	arrangements = ArrangementService.get_future(metadata, user.id)
+
+	return arrangements_full_result_schema.dump(arrangements)
+
+
+# view gide's arrangements - admin
+@arrangement_bp.get("user/guide")
+def view_guide_arrangements():
+	validate_session(2)
+	data = id_request_schema.load(request.json)
+	metadata = meta_schema.load(request.args)
+	user = UserService.get_by_id(data.get("id"))
+
+	if not user:
+		raise NotFound(f"User with id {data.get('id')} not found")
+
+	if user.type != 1:
+		raise Forbidden("Access forbidden")
+
+	arrangements = ArrangementService.get_guide_arrangements(metadata, user.id)
+
+	return arrangements_full_result_schema.dump(arrangements)

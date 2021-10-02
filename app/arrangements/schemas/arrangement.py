@@ -142,7 +142,7 @@ class SearchRequestSchema(MetaSchema):
 			raise ValidationError("Wrong date format")
 
 
-class ArrangementRequestSchema(Schema):
+class IdRequestSchema(Schema):
 	id = fields.Integer(required = True)
 
 
@@ -156,6 +156,7 @@ class ArrangementGuideResponseSchema(ArrangementFullResponseSchema):
 
 
 class UserResponseSchema(Schema):
+	id = fields.Integer()
 	name = fields.String()
 	surname = fields.String()
 	email = fields.String()
@@ -223,3 +224,11 @@ class ArrangementUpdateRequestSchema(Schema):
 				"destination" not in data and "vacancies" not in data and "price" not in data:
 			raise ValidationError("Nothing to patch")
 		return data
+
+
+class UserMetaSchema(MetaSchema):
+	type = fields.Integer()
+
+
+class UserListResponseSchema(MetaCollectionSchema):
+	items = fields.List(fields.Nested(UserResponseSchema()), data_key = "response")
