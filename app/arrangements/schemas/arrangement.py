@@ -90,6 +90,11 @@ class ReserveRequestSchema(Schema):
 	count = fields.Integer(default = 1, missing = 1)
 	arrangement_id = fields.Integer(required = True)
 
+	@validates("count")
+	def validate_count(self, value):
+		if value < 1:
+			raise ValidationError("Count cannot be less than 1")
+
 
 class ReserveResponseSchema(Schema):
 	count = fields.Integer()
@@ -137,7 +142,7 @@ class SearchRequestSchema(MetaSchema):
 			raise ValidationError("Wrong date format")
 
 
-class CancelArrangementSchema(Schema):
+class ArrangementRequestSchema(Schema):
 	id = fields.Integer(required = True)
 
 
@@ -175,5 +180,46 @@ class UserUpdateSchema(Schema):
 	def func(self, data, **kwargs):
 		if "name" not in data and "surname" not in data and "email" not in data and "username" not in data and \
 				"new_password" not in data and "old_password" not in data:
+			raise ValidationError("Nothing to patch")
+		return data
+
+
+class ArrangementUpdateRequestSchema(Schema):
+	id = fields.Integer(required = True)
+	start_date = fields.String()
+	end_date = fields.String()
+	description = fields.String()
+	destination = fields.String()
+	vacancies = fields.Integer()
+	price = fields.Float()
+
+	@validates("start_date")
+	def validate_start_date(self, value):
+		try:
+			datetime.strptime(value, "%Y-%m-%d")
+		except ValueError:
+			raise ValidationError("Wrong date format")
+
+	@validates("end_date")
+	def validate_end_date(self, value):
+		try:
+			datetime.strptime(value, "%Y-%m-%d")
+		except ValueError:
+			raise ValidationError("Wrong date format")
+
+	@validates("price")
+	def validate_price(self, value):
+		if value < 0:
+			raise ValidationError("Price cannot be negative")
+
+	@validates("vacancies")
+	def validate_vacancies(self, value):
+		if value < 0:
+			raise ValidationError("Vacancies cannot be negative")
+
+	@pre_load()
+	def func(self, data, **kwargs):
+		if "start_date" not in data and "end_date" not in data and "description" not in data and \
+				"destination" not in data and "vacancies" not in data and "price" not in data:
 			raise ValidationError("Nothing to patch")
 		return data

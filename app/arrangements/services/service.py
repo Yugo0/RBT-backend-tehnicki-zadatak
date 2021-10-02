@@ -13,6 +13,11 @@ class ArrangementService:
 		return arrangements
 
 	@staticmethod
+	def get_by_id(id):
+		arrangement = db.session.query(Arrangement).filter(Arrangement.id == id).one_or_none()
+		return arrangement
+
+	@staticmethod
 	def get_available(data, id):
 		from_date = datetime.now() + timedelta(days = 5)
 
@@ -50,7 +55,7 @@ class ArrangementService:
 		arrangement = db.session.query(Arrangement).filter(Arrangement.id == data.get("arrangement_id")).one_or_none()
 
 		from_date = datetime.now() + timedelta(days = 5)
-		if arrangement.start_date < from_date:
+		if arrangement.start_date < from_date.date():
 			raise NotAcceptable("Too late to reserve")
 
 		count = data.get("count")
@@ -81,7 +86,7 @@ class ArrangementService:
 			raise Forbidden("Access forbidden")
 
 		from_date = datetime.now() + timedelta(days = 5)
-		if arrangement.start_date < from_date:
+		if arrangement.start_date < from_date.date():
 			raise NotAcceptable("Too late to change description")
 
 		arrangement.description = data.get("description")
@@ -117,7 +122,7 @@ class ArrangementService:
 			raise Forbidden("Access forbidden")
 
 		from_date = datetime.now() + timedelta(days = 5)
-		if arrangement.start_date < from_date:
+		if arrangement.start_date < from_date.date():
 			raise NotAcceptable("Too late to cancel")
 
 		emails = []
@@ -164,6 +169,38 @@ class ArrangementService:
 		arrangement.guide_id = guide_id
 		db.session.commit()
 
+		return arrangement
+
+	@staticmethod
+	def update_arrangement(data, user_id):
+		arrangement = db.session.query(Arrangement).filter(Arrangement.id == data.get("id")).one_or_none()
+
+		if not arrangement:
+			raise NotFound(f"Arrangement with id {data.get('id')} not found")
+
+		if arrangement.admin_id != user_id:
+			raise Forbidden("Access forbidden")
+
+		from_date = datetime.now() + timedelta(days = 5)
+		if arrangement.start_date < from_date.date():
+			raise NotAcceptable("Too late to update")
+
+		if data.get("start_date"):
+			start_date = datetime.strptime(data.get("start_date"), "%Y-%m-%d")
+			arrangement.start_date = start_date
+		if data.get("end_date"):
+			end_date = datetime.strptime(data.get("end_date"), "%Y-%m-%d")
+			arrangement.end_date = end_date
+		if data.get("description"):
+			arrangement.description = data.get("username")
+		if data.get("destination"):
+			arrangement.destination = data.get("destination")
+		if data.get("vacancies"):
+			arrangement.vacancies = data.get("vacancies")
+		if data.get("price"):
+			arrangement.price = data.get("price")
+
+		db.session.commit()
 		return arrangement
 
 

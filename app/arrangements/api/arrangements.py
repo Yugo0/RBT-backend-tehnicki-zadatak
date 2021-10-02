@@ -4,7 +4,8 @@ from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, 
 	ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, TypeChangeRequestSchema, \
 	TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, ReserveResponseSchema, \
 	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, SearchRequestSchema, \
-	CancelArrangementSchema, SetGuideSchema, ArrangementGuideResponseSchema, UserResponseSchema, UserUpdateSchema
+	ArrangementRequestSchema, SetGuideSchema, ArrangementGuideResponseSchema, UserResponseSchema, UserUpdateSchema, \
+	ArrangementUpdateRequestSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import bcrypt
@@ -24,11 +25,12 @@ arrangement_description_change_request_schema = ArrangementsDescriptionChangeReq
 type_change_list_schema = TypeChangeListSchema()
 type_change_decision_schema = TypeChangeDecisionSchema()
 search_request_schema = SearchRequestSchema()
-cancel_arrangement_schema = CancelArrangementSchema()
+arrangement_request_schema = ArrangementRequestSchema()
 set_guide_schema = SetGuideSchema()
 arrangement_guide_response_schema = ArrangementGuideResponseSchema()
 user_response_schema = UserResponseSchema()
 user_update_schema = UserUpdateSchema()
+arrangement_update_request_schema = ArrangementUpdateRequestSchema()
 
 
 def validate_session(user_type):
@@ -260,7 +262,7 @@ def search_arrangements():
 @arrangement_bp.delete("cancel")
 def cancel_arrangement():
 	user = validate_session(2)
-	data = cancel_arrangement_schema.load(request.json)
+	data = arrangement_request_schema.load(request.json)
 	ArrangementService.cancel(data, user.id)
 	return redirect("user/created")
 
@@ -289,3 +291,25 @@ def update_profile():
 	data = user_update_schema.load(request.json)
 	user = UserService.update_user(data, user.id)
 	return user_response_schema.dump(user)
+
+
+# update arrangement - admin
+@arrangement_bp.patch("arrangement/update")
+def update_arrangement():
+	user = validate_session(2)
+	data = arrangement_update_request_schema.load(request.json)
+	arrangement = ArrangementService.update_arrangement(data, user.id)
+	return arrangement_full_response_schema.dump(arrangement)
+
+
+# view arrangement - admin
+@arrangement_bp.get("arrangement/details")
+def view_arrangement():
+	validate_session(2)
+	data = arrangement_request_schema.load(request.json)
+	arrangement = ArrangementService.get_by_id(data.get("id"))
+
+	if not arrangement:
+		raise NotFound(f"Arrangement with id {data.get('id')} not found")
+
+	return arrangement_full_response_schema.dump(arrangement)
