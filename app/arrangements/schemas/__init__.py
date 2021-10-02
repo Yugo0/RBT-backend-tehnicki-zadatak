@@ -2,4 +2,4 @@ from .arrangement import ArrangementBasicResponseSchema, ArrangementFullResponse
 	ArrangementsBasicResultSchema, ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, \
 	TypeChangeRequestSchema, TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, \
 	ReserveResponseSchema, ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, \
-	SearchRequestSchema, CancelArrangementSchema
+	SearchRequestSchema, CancelArrangementSchema, SetGuideSchema, ArrangementGuideResponseSchema

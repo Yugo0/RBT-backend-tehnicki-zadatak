@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import bcrypt
 from werkzeug.exceptions import BadRequest, NotAcceptable, NotFound, Forbidden
 from flask_mail import Message
+import logging
 
 
 class ArrangementService:
@@ -130,13 +131,41 @@ class ArrangementService:
 		db.session.delete(arrangement)
 		db.session.commit()
 
-		# TODO - This works, but not through dorm's proxy server, keep commented for now
-		# msg = Message("Arrangement canceled", recipients = [emails])
-		# msg.body = f"Dear customer,\n" \
-		# 		   f"\n" \
-		# 		   f"We must inform you that out arrangement to {arrangement.destination} due between " \
-		# 		   f"{arrangement.start_date} and {arrangement.end_date} has been cancelled."
-		# mail.send(msg)
+	# TODO - This works, but not through dorm's proxy server, keep commented for now
+	# msg = Message("Arrangement canceled", recipients = [emails])
+	# msg.body = f"Dear customer,\n" \
+	# 		   f"\n" \
+	# 		   f"We must inform you that out arrangement to {arrangement.destination} due between " \
+	# 		   f"{arrangement.start_date} and {arrangement.end_date} has been cancelled."
+	# mail.send(msg)
+
+	@staticmethod
+	def set_guide(data, user_id):
+		arrangement_id = data.get("arrangement_id")
+		arrangement = db.session.query(Arrangement).filter(Arrangement.id == arrangement_id).one_or_none()
+
+		if not arrangement:
+			raise NotFound(f"Arrangement with id {arrangement_id} not found")
+
+		if arrangement.admin_id != user_id:
+			raise Forbidden("Access forbidden")
+
+		guide_id = data.get("guide_id")
+		if guide_id is not None:
+			guide = db.session.query(User).filter(User.id == guide_id, User.type == 1).one_or_none()
+			if not guide:
+				raise NotFound(f"Guide with id {guide_id} not found")
+
+			guide_arrangements = db.session.query(Arrangement).filter(Arrangement.guide_id == guide_id)
+
+			for arr in guide_arrangements:
+				if arrangement.end_date > arr.start_date and arrangement.start_date < arr.end_date:
+					raise NotAcceptable(f"Guide with id {guide_id} is engaged in that time period")
+
+		arrangement.guide_id = guide_id
+		db.session.commit()
+
+		return arrangement
 
 
 class UserService:

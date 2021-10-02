@@ -4,7 +4,7 @@ from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, 
 	ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, TypeChangeRequestSchema, \
 	TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, ReserveResponseSchema, \
 	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, SearchRequestSchema, \
-	CancelArrangementSchema
+	CancelArrangementSchema, SetGuideSchema, ArrangementGuideResponseSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import re
@@ -26,6 +26,8 @@ type_change_list_schema = TypeChangeListSchema()
 type_change_decision_schema = TypeChangeDecisionSchema()
 search_request_schema = SearchRequestSchema()
 cancel_arrangement_schema = CancelArrangementSchema()
+set_guide_schema = SetGuideSchema()
+arrangement_guide_response_schema = ArrangementGuideResponseSchema()
 
 
 def validate_session(user_type):
@@ -266,3 +268,13 @@ def cancel_arrangement():
 	data = cancel_arrangement_schema.load(request.json)
 	ArrangementService.cancel(data, user.id)
 	return redirect("user/created")
+
+
+# set guide - admin
+@arrangement_bp.patch("arrangement/set_guide")
+def set_guide():
+	user = validate_session(2)
+	data = set_guide_schema.load(request.json)
+	arrangement = ArrangementService.set_guide(data, user.id)
+
+	return arrangement_guide_response_schema.dump(arrangement)

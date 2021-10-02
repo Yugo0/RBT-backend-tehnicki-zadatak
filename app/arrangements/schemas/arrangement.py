@@ -4,6 +4,7 @@ from datetime import datetime
 
 
 class ArrangementBasicResponseSchema(Schema):
+	id = fields.Integer()
 	start_date = fields.DateTime()
 	end_date = fields.DateTime()
 	destination = fields.String()
@@ -55,9 +56,14 @@ class UserLoginSchema(Schema):
 class TypeChangeRequestSchema(Schema):
 	new_type = fields.Integer(required = True)
 
+	@validates("new_type")
+	def validate_date_from(self, value):
+		if 0 > value > 2:
+			raise ValidationError("Unknown user type")
+
 
 class TypeChangeResponseSchema(Schema):
-	type = fields.Integer(required = True)
+	type = fields.Integer()
 	accepted = fields.Boolean()
 	comment = fields.String()
 
@@ -126,4 +132,13 @@ class SearchRequestSchema(MetaSchema):
 
 
 class CancelArrangementSchema(Schema):
-	id = fields.Integer()
+	id = fields.Integer(required = True)
+
+
+class SetGuideSchema(Schema):
+	arrangement_id = fields.Integer(required = True)
+	guide_id = fields.Integer()
+
+
+class ArrangementGuideResponseSchema(ArrangementFullResponseSchema):
+	guide_id = fields.Integer()
