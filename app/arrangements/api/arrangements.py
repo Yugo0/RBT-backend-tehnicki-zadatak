@@ -4,10 +4,9 @@ from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, 
 	ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, TypeChangeRequestSchema, \
 	TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, ReserveResponseSchema, \
 	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, SearchRequestSchema, \
-	CancelArrangementSchema, SetGuideSchema, ArrangementGuideResponseSchema
+	CancelArrangementSchema, SetGuideSchema, ArrangementGuideResponseSchema, UserResponseSchema, UserUpdateSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
-import re
 import bcrypt
 
 arrangement_full_response_schema = ArrangementFullResponseSchema()
@@ -28,6 +27,8 @@ search_request_schema = SearchRequestSchema()
 cancel_arrangement_schema = CancelArrangementSchema()
 set_guide_schema = SetGuideSchema()
 arrangement_guide_response_schema = ArrangementGuideResponseSchema()
+user_response_schema = UserResponseSchema()
+user_update_schema = UserUpdateSchema()
 
 
 def validate_session(user_type):
@@ -155,9 +156,6 @@ def register_user():
 	if data.get("password") != data.get("password_verification"):
 		raise BadRequest("Password is not verified")
 
-	if not re.fullmatch(".+@.+", data.get("email")):
-		raise BadRequest("Email is not in valid format")
-
 	user = UserService.register(data)
 
 	session["id"] = user.id
@@ -217,13 +215,10 @@ def reserve_arrangement():
 # change arrangement description - guide
 @arrangement_bp.patch("arrangement/change_description")
 def change_description():
-	user = validate_session(1)
-
+	user = validate_session(0)
 	data = arrangement_description_change_request_schema.load(request.json)
-
-	arrangement = ArrangementService.change_description(data, user.id)
-
-	return arrangement_full_response_schema.dump(arrangement)
+	user = UserService.update_user(data, user.id)
+	return arrangement_full_response_schema.dump(user)
 
 
 # view type change requests - admin
@@ -278,3 +273,19 @@ def set_guide():
 	arrangement = ArrangementService.set_guide(data, user.id)
 
 	return arrangement_guide_response_schema.dump(arrangement)
+
+
+# view profile - tourst
+@arrangement_bp.get("user/profile")
+def get_profile():
+	user = validate_session(0)
+	return user_response_schema.dump(user)
+
+
+# update profile - tourst
+@arrangement_bp.patch("user/profile")
+def update_profile():
+	user = validate_session(0)
+	data = user_update_schema.load(request.json)
+	user = UserService.update_user(data, user.id)
+	return user_response_schema.dump(user)

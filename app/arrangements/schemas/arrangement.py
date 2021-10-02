@@ -1,6 +1,7 @@
-from marshmallow import Schema, fields, validates, ValidationError
+from marshmallow import Schema, fields, validates, ValidationError, pre_load
 from app.arrangements.constants import PAGE, PER_PAGE
 from datetime import datetime
+import re
 
 
 class ArrangementBasicResponseSchema(Schema):
@@ -46,6 +47,11 @@ class UserRegistrationSchema(Schema):
 	password = fields.String(required = True)
 	password_verification = fields.String(required = True)
 	type = fields.Integer(default = 0, missing = 0)
+
+	@validates("email")
+	def validate_email(self, value):
+		if not re.fullmatch(".+@.+", value):
+			raise ValidationError("Email is not in valid format")
 
 
 class UserLoginSchema(Schema):
@@ -142,3 +148,32 @@ class SetGuideSchema(Schema):
 
 class ArrangementGuideResponseSchema(ArrangementFullResponseSchema):
 	guide_id = fields.Integer()
+
+
+class UserResponseSchema(Schema):
+	name = fields.String()
+	surname = fields.String()
+	email = fields.String()
+	username = fields.String()
+	type = fields.Integer()
+
+
+class UserUpdateSchema(Schema):
+	name = fields.String()
+	surname = fields.String()
+	email = fields.String()
+	username = fields.String()
+	new_password = fields.String()
+	old_password = fields.String()
+
+	@validates("email")
+	def validate_date_to(self, value):
+		if not re.fullmatch(".+@.+", value):
+			raise ValidationError("Email is not in valid format")
+
+	@pre_load()
+	def func(self, data, **kwargs):
+		if "name" not in data and "surname" not in data and "email" not in data and "username" not in data and \
+				"new_password" not in data and "old_password" not in data:
+			raise ValidationError("Nothing to patch")
+		return data

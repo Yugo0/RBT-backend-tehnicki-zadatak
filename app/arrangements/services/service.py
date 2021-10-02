@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import bcrypt
 from werkzeug.exceptions import BadRequest, NotAcceptable, NotFound, Forbidden
 from flask_mail import Message
-import logging
 
 
 class ArrangementService:
@@ -265,3 +264,30 @@ class UserService:
 		# 	mail.send(msg)
 
 		return request
+
+	@staticmethod
+	def update_user(data, user_id):
+		user = db.session.query(User).filter(User.id == user_id).one_or_none()
+
+		if data.get("name"):
+			user.name = data.get("name")
+		if data.get("surname"):
+			user.surname = data.get("surname")
+		if data.get("username"):
+			username = data.get("username")
+			check = UserService.get_by_username(username)
+			if check is not None:
+				raise BadRequest(f"Username {username} already exists")
+			user.username = username
+		if data.get("new_password"):
+			new_password = data.get("new_password")
+			old_password = data.get("old_password")
+			if not old_password:
+				raise BadRequest(f"Old password required to change password")
+			if not bcrypt.checkpw(old_password.encode("utf-8"), user.password_hash.encode("utf-8")):
+				raise NotAcceptable("Old password doesn't match")
+			password_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+			user.password_hash = password_hash
+
+		db.session.commit()
+		return user
