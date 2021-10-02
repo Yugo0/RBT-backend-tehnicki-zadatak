@@ -4,6 +4,12 @@ from datetime import datetime
 import re
 
 
+class MetaSchema(Schema):
+	page = fields.Integer(default = PAGE, missing = PAGE)
+	per_page = fields.Integer(default = PER_PAGE, missing = PER_PAGE)
+	total = fields.Integer(default = 0, missing = 0)
+
+
 class ArrangementBasicResponseSchema(Schema):
 	id = fields.Integer()
 	start_date = fields.DateTime()
@@ -12,15 +18,29 @@ class ArrangementBasicResponseSchema(Schema):
 	price = fields.Float()
 
 
+class ArrangementBasicResponseMetaSchema(MetaSchema):
+	order_by = fields.String()
+	direction = fields.String()
+
+	@validates("order_by")
+	def validate_order_by(self, value):
+		if value not in ["start_date", "end_date", "destination", "price"]:
+			raise ValidationError(f"Data must be ordered by these: start_date, end_date, destination, price")
+
+
 class ArrangementFullResponseSchema(ArrangementBasicResponseSchema):
 	description = fields.String()
 	vacancies = fields.Integer()
 
 
-class MetaSchema(Schema):
-	page = fields.Integer(default = PAGE, missing = PAGE)
-	per_page = fields.Integer(default = PER_PAGE, missing = PER_PAGE)
-	total = fields.Integer(default = 0, missing = 0)
+class ArrangementFullResponseMetaSchema(MetaSchema):
+	order_by = fields.String()
+	direction = fields.String()
+
+	@validates("order_by")
+	def validate_order_by(self, value):
+		if value not in ["start_date", "end_date", "destination", "price", "vacancies"]:
+			raise ValidationError(f"Data must be ordered by these: start_date, end_date, destination, price, vacancies")
 
 
 class MetaCollectionSchema(Schema):
@@ -82,6 +102,16 @@ class ReservationResponseSchema(Schema):
 	price = fields.Float()
 
 
+class ReservationResponseMetaSchema(MetaSchema):
+	order_by = fields.String()
+	direction = fields.String()
+
+	@validates("order_by")
+	def validate_order_by(self, value):
+		if value not in ["start_date", "end_date", "destination", "count", "price"]:
+			raise ValidationError(f"Data must be ordered by these: start_date, end_date, destination, count, price")
+
+
 class ReservationsResponseSchema(MetaCollectionSchema):
 	items = fields.List(fields.Nested(ReservationResponseSchema()), data_key = "response")
 
@@ -110,6 +140,16 @@ class TypeChangeViewSchema(Schema):
 	id = fields.Integer()
 	username = fields.String()
 	type = fields.Integer()
+
+
+class TypeChangeViewMetaSchema(MetaSchema):
+	order_by = fields.String()
+	direction = fields.String()
+
+	@validates("order_by")
+	def validate_order_by(self, value):
+		if value not in ["username", "type"]:
+			raise ValidationError(f"Data must be ordered by these: username, type")
 
 
 class TypeChangeListSchema(MetaCollectionSchema):
@@ -162,6 +202,16 @@ class UserResponseSchema(Schema):
 	email = fields.String()
 	username = fields.String()
 	type = fields.Integer()
+
+
+class UserResponseMetaSchema(MetaSchema):
+	order_by = fields.String()
+	direction = fields.String()
+
+	@validates("order_by")
+	def validate_order_by(self, value):
+		if value not in ["name", "surname", "username", "type"]:
+			raise ValidationError(f"Data must be ordered by these: name, surname, username, type")
 
 
 class UserUpdateSchema(Schema):
@@ -226,7 +276,7 @@ class ArrangementUpdateRequestSchema(Schema):
 		return data
 
 
-class UserMetaSchema(MetaSchema):
+class UserMetaSchema(UserResponseMetaSchema):
 	type = fields.Integer()
 
 

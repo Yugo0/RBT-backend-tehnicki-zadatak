@@ -4,12 +4,51 @@ from datetime import datetime, timedelta
 import bcrypt
 from werkzeug.exceptions import BadRequest, NotAcceptable, NotFound, Forbidden
 from flask_mail import Message
+from sqlalchemy import desc
+
+order_by_arrangement = {
+	"start_date": Arrangement.start_date,
+	"end_date": Arrangement.end_date,
+	"destination": Arrangement.destination,
+	"price": Arrangement.price,
+	"vacancies": Arrangement.vacancies
+}
+
+order_by_reservation = {
+	"start_date": Arrangement.start_date,
+	"end_date": Arrangement.end_date,
+	"destination": Arrangement.destination,
+	"count": Reservation.count,
+	"price": Reservation.price
+}
+
+order_by_type_change = {
+	"username": User.username,
+	"type": TypeChangeRequest.type
+}
+
+order_by_user = {
+	"name": User.name,
+	"surname": User.surname,
+	"username": User.username,
+	"type": User.type
+}
 
 
 class ArrangementService:
 	@staticmethod
 	def get_all(data):
-		arrangements = db.session.query(Arrangement).paginate(page = data.get("page"), per_page = data.get("per_page"))
+		arrangements = db.session.query(Arrangement)
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				arrangements = arrangements.order_by(order_by_arrangement[order_by])
+			else:
+				arrangements = arrangements.order_by(desc(order_by_arrangement[order_by]))
+
+		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
 
 	@staticmethod
@@ -27,6 +66,16 @@ class ArrangementService:
 		arrangements = db.session.query(Arrangement).filter(Arrangement.start_date >= from_date)
 		for ex in exclude:
 			arrangements = arrangements.filter(Arrangement.id != ex)
+
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				arrangements = arrangements.order_by(order_by_arrangement[order_by])
+			else:
+				arrangements = arrangements.order_by(desc(order_by_arrangement[order_by]))
+
 		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
 
@@ -34,20 +83,48 @@ class ArrangementService:
 	def get_reservations(data, id):
 		reservations = db.session.query(Arrangement.start_date, Arrangement.end_date, Arrangement.destination,
 			Reservation.count, Reservation.price).join(Arrangement).filter(
-			Arrangement.id == Reservation.arrangement_id, Reservation.user_id == id).paginate(
-			page = data.get("page"), per_page = data.get("per_page"))
+			Arrangement.id == Reservation.arrangement_id, Reservation.user_id == id)
+
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				reservations = reservations.order_by(order_by_reservation[order_by])
+			else:
+				reservations = reservations.order_by(desc(order_by_reservation[order_by]))
+
+		reservations = reservations.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return reservations
 
 	@staticmethod
 	def get_created(data, id):
-		arrangements = db.session.query(Arrangement).filter(Arrangement.admin_id == id).paginate(
-			page = data.get("page"), per_page = data.get("per_page"))
+		arrangements = db.session.query(Arrangement).filter(Arrangement.admin_id == id)
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				arrangements = arrangements.order_by(order_by_arrangement[order_by])
+			else:
+				arrangements = arrangements.order_by(desc(order_by_arrangement[order_by]))
+
+		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
 
 	@staticmethod
 	def get_designated(data, id):
-		arrangements = db.session.query(Arrangement).filter(Arrangement.guide_id == id).paginate(
-			page = data.get("page"), per_page = data.get("per_page"))
+		arrangements = db.session.query(Arrangement).filter(Arrangement.guide_id == id)
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				arrangements = arrangements.order_by(order_by_arrangement[order_by])
+			else:
+				arrangements = arrangements.order_by(desc(order_by_arrangement[order_by]))
+
+		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
 
 	@staticmethod
@@ -106,6 +183,15 @@ class ArrangementService:
 		if data.get("date_to"):
 			date_to = datetime.strptime(data.get("date_from"), "%Y-%m-%d")
 			arrangements = arrangements.filter(Arrangement.end_date < date_to)
+
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				arrangements = arrangements.order_by(order_by_arrangement[order_by])
+			else:
+				arrangements = arrangements.order_by(desc(order_by_arrangement[order_by]))
 
 		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
@@ -207,20 +293,51 @@ class ArrangementService:
 	def get_past(data, user_id):
 		today = datetime.now()
 		arrangements = db.session.query(Arrangement).join(Reservation).filter(Reservation.user_id == user_id,
-			Arrangement.end_date < today).paginate(page = data.get("page"), per_page = data.get("per_page"))
+			Arrangement.end_date < today)
+
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				arrangements = arrangements.order_by(order_by_arrangement[order_by])
+			else:
+				arrangements = arrangements.order_by(desc(order_by_arrangement[order_by]))
+
+		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
 
 	@staticmethod
 	def get_future(data, user_id):
 		today = datetime.now()
 		arrangements = db.session.query(Arrangement).join(Reservation).filter(Reservation.user_id == user_id,
-			Arrangement.start_date > today).paginate(page = data.get("page"), per_page = data.get("per_page"))
+			Arrangement.start_date > today)
+
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				arrangements = arrangements.order_by(order_by_arrangement[order_by])
+			else:
+				arrangements = arrangements.order_by(desc(order_by_arrangement[order_by]))
+
+		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
 
 	@staticmethod
 	def get_guide_arrangements(data, user_id):
-		arrangements = db.session.query(Arrangement).filter(Arrangement.guide_id == user_id).paginate(
-			page = data.get("page"), per_page = data.get("per_page"))
+		arrangements = db.session.query(Arrangement).filter(Arrangement.guide_id == user_id)
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				arrangements = arrangements.order_by(order_by_arrangement[order_by])
+			else:
+				arrangements = arrangements.order_by(desc(order_by_arrangement[order_by]))
+
+		arrangements = arrangements.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return arrangements
 
 
@@ -284,7 +401,18 @@ class UserService:
 	@staticmethod
 	def get_requests(data):
 		requests = db.session.query(TypeChangeRequest.id, User.username, TypeChangeRequest.type).join(User).filter(
-			User.id == TypeChangeRequest.user_id).paginate(page = data.get("page"), per_page = data.get("per_page"))
+			User.id == TypeChangeRequest.user_id)
+
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				requests = requests.order_by(order_by_type_change[order_by])
+			else:
+				requests = requests.order_by(desc(order_by_type_change[order_by]))
+
+		requests = requests.paginate(page = data.get("page"), per_page = data.get("per_page"))
 		return requests
 
 	@staticmethod
@@ -355,6 +483,15 @@ class UserService:
 
 		if data.get("type") in [0, 1, 2]:
 			users = users.filter(User.type == data.get("type"))
+
+		order_by = data.get("order_by")
+		direction = data.get("direction", "asc")
+
+		if order_by is not None:
+			if direction == "asc":
+				users = users.order_by(order_by_user[order_by])
+			else:
+				users = users.order_by(desc(order_by_user[order_by]))
 
 		users = users.paginate(page = data.get("page"), per_page = data.get("per_page"))
 

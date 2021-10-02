@@ -1,17 +1,17 @@
 from app.arrangements import arrangement_bp
 from flask import request, session, redirect
-from app.arrangements.schemas import ArrangementFullResponseSchema, MetaSchema, ArrangementsBasicResultSchema, \
+from app.arrangements.schemas import ArrangementFullResponseSchema, ArrangementsBasicResultSchema, \
 	ArrangementsFullResultSchema, UserRegistrationSchema, UserLoginSchema, TypeChangeRequestSchema, \
 	TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, ReserveResponseSchema, \
 	ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, SearchRequestSchema, \
 	IdRequestSchema, SetGuideSchema, ArrangementGuideResponseSchema, UserResponseSchema, UserUpdateSchema, \
-	ArrangementUpdateRequestSchema, UserListResponseSchema, UserMetaSchema
+	ArrangementUpdateRequestSchema, UserListResponseSchema, UserMetaSchema, ArrangementBasicResponseMetaSchema, \
+	ArrangementFullResponseMetaSchema, ReservationResponseMetaSchema, TypeChangeViewMetaSchema
 from app.arrangements.services import ArrangementService, UserService
 from werkzeug.exceptions import NotFound, Forbidden, BadRequest, NotAcceptable
 import bcrypt
 
 arrangement_full_response_schema = ArrangementFullResponseSchema()
-meta_schema = MetaSchema()
 arrangements_basic_result_schema = ArrangementsBasicResultSchema()
 arrangements_full_result_schema = ArrangementsFullResultSchema()
 user_registration_schema = UserRegistrationSchema()
@@ -33,6 +33,10 @@ user_update_schema = UserUpdateSchema()
 arrangement_update_request_schema = ArrangementUpdateRequestSchema()
 user_list_response_schema = UserListResponseSchema()
 user_meta_schema = UserMetaSchema()
+arrangements_basic_response_meta_schema = ArrangementBasicResponseMetaSchema()
+arrangements_full_response_meta_schema = ArrangementFullResponseMetaSchema()
+reservation_response_meta_schema = ReservationResponseMetaSchema()
+type_change_view_meta_schema = TypeChangeViewMetaSchema()
 
 
 def validate_session(user_type):
@@ -54,7 +58,7 @@ def validate_session(user_type):
 # all arrangements - no user
 @arrangement_bp.get("all")
 def get_all():
-	data = meta_schema.load(request.args.to_dict())
+	data = arrangements_basic_response_meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_all(data)
 	return arrangements_basic_result_schema.dump(arrangements)
 
@@ -74,7 +78,7 @@ def get_all_user():
 	if user.type == 0:
 		raise Forbidden("Access forbidden for this account type")
 
-	data = meta_schema.load(request.args.to_dict())
+	data = arrangements_full_response_meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_all(data)
 
 	return arrangements_full_result_schema.dump(arrangements)
@@ -85,7 +89,7 @@ def get_all_user():
 def get_created():
 	user = validate_session(2)
 
-	data = meta_schema.load(request.args.to_dict())
+	data = arrangements_full_response_meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_created(data, user.id)
 
 	return arrangements_full_result_schema.dump(arrangements)
@@ -96,7 +100,7 @@ def get_created():
 def get_designated():
 	user = validate_session(1)
 
-	data = meta_schema.load(request.args.to_dict())
+	data = arrangements_full_response_meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_designated(data, user.id)
 
 	return arrangements_full_result_schema.dump(arrangements)
@@ -107,7 +111,7 @@ def get_designated():
 def get_available():
 	user = validate_session(0)
 
-	data = meta_schema.load(request.args.to_dict())
+	data = arrangements_full_response_meta_schema.load(request.args.to_dict())
 	arrangements = ArrangementService.get_available(data, user.id)
 
 	return arrangements_full_result_schema.dump(arrangements)
@@ -118,7 +122,7 @@ def get_available():
 def get_reservations():
 	user = validate_session(0)
 
-	data = meta_schema.load(request.args.to_dict())
+	data = reservation_response_meta_schema.load(request.args.to_dict())
 	reservations = ArrangementService.get_reservations(data, user.id)
 
 	return reservations_response_schema.dump(reservations)
@@ -230,7 +234,7 @@ def change_description():
 def view_all_requests():
 	validate_session(2)
 
-	data = meta_schema.load(request.args.to_dict())
+	data = type_change_view_meta_schema.load(request.args.to_dict())
 	requests = UserService.get_requests(data)
 
 	return type_change_list_schema.dump(requests)
@@ -345,7 +349,7 @@ def view_users():
 def view_past_arrangements():
 	validate_session(2)
 	data = id_request_schema.load(request.json)
-	metadata = meta_schema.load(request.args)
+	metadata = arrangements_full_response_meta_schema.load(request.args)
 	user = UserService.get_by_id(data.get("id"))
 
 	if not user:
@@ -364,7 +368,7 @@ def view_past_arrangements():
 def view_future_arrangements():
 	validate_session(2)
 	data = id_request_schema.load(request.json)
-	metadata = meta_schema.load(request.args)
+	metadata = arrangements_full_response_meta_schema.load(request.args)
 	user = UserService.get_by_id(data.get("id"))
 
 	if not user:
@@ -383,7 +387,7 @@ def view_future_arrangements():
 def view_guide_arrangements():
 	validate_session(2)
 	data = id_request_schema.load(request.json)
-	metadata = meta_schema.load(request.args)
+	metadata = arrangements_full_response_meta_schema.load(request.args)
 	user = UserService.get_by_id(data.get("id"))
 
 	if not user:

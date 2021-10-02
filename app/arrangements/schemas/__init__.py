@@ -3,4 +3,6 @@ from .arrangement import ArrangementBasicResponseSchema, ArrangementFullResponse
 	TypeChangeRequestSchema, TypeChangeResponseSchema, ReservationsResponseSchema, ReserveRequestSchema, \
 	ReserveResponseSchema, ArrangementsDescriptionChangeRequestSchema, TypeChangeListSchema, TypeChangeDecisionSchema, \
 	SearchRequestSchema, IdRequestSchema, SetGuideSchema, ArrangementGuideResponseSchema, UserResponseSchema, \
-	UserUpdateSchema, ArrangementUpdateRequestSchema, UserListResponseSchema, UserMetaSchema
+	UserUpdateSchema, ArrangementUpdateRequestSchema, UserListResponseSchema, UserMetaSchema, \
+	ArrangementBasicResponseMetaSchema, ArrangementFullResponseMetaSchema, ReservationResponseMetaSchema, \
+	TypeChangeViewMetaSchema
