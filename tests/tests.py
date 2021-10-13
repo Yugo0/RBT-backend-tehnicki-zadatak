@@ -45,8 +45,34 @@ class TestLogin(unittest.TestCase):
 			json = {"username": "mark", "password": "marko123"})
 		self.assertEqual(req.status_code, 404)
 
+	if __name__ == '__main__':
+		unittest.main()
+
+
+class TestTourist(unittest.TestCase):
+	def setUp(self):
+		self.session = requests.session()
+		os.environ['NO_PROXY'] = '127.0.0.1'
+		req = self.session.post("http://127.0.0.1:5000/api/arrangements/login",
+			json = {"username": "marko", "password": "marko123"})
+
+	def test_available_arrangements(self):
+		pass
+		req = self.session.get("http://127.0.0.1:5000/api/arrangements/user/available")
+		self.assertEqual(req.status_code, 200)
+
+	def test_reservations(self):
+		pass
+		req = self.session.get("http://127.0.0.1:5000/api/arrangements/user/reservations")
+		self.assertEqual(req.status_code, 200)
+
+	def test_profile(self):
+		pass
+		req = self.session.get("http://127.0.0.1:5000/api/arrangements/user/profile")
+		self.assertEqual(req.status_code, 200)
+
 	def tearDown(self):
-		requests.get("http://127.0.0.1:5000/api/arrangements/logout")
+		self.session.get("http://127.0.0.1:5000/api/arrangements/logout")
 
 	if __name__ == '__main__':
 		unittest.main()
